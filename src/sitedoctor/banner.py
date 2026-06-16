@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import random
 import sys
 
 _CYAN = "\033[96m"
@@ -10,6 +11,9 @@ _MAGENTA = "\033[95m"
 _BOLD = "\033[1m"
 _DIM = "\033[2m"
 _RESET = "\033[0m"
+
+# A neon palette (256-color codes) the banner picks from at random each run.
+_NEON = [51, 45, 39, 201, 207, 198, 165, 129, 99, 46, 118, 82, 226, 220, 214, 208]
 
 _UNICODE = r"""
 ██████╗  ██████╗ ██╗     ██╗   ██╗
@@ -48,16 +52,21 @@ def _color_on(flag, stream) -> bool:
     return hasattr(stream, "isatty") and stream.isatty()
 
 
-def render_banner(color=None, unicode_ok=None, stream=None) -> str:
+def render_banner(color=None, unicode_ok=None, stream=None, rng=None) -> str:
     stream = stream or sys.stderr
     on = _color_on(color, stream)
     uni = _supports_unicode(stream) if unicode_ok is None else unicode_ok
     art = (_UNICODE if uni else _ASCII).strip("\n")
     sep = "·" if uni else "-"
+    rng = rng or random
 
     if on:
-        art = f"{_BOLD}{_CYAN}{art}{_RESET}"
-        tag = f"  {_MAGENTA}PGLU{_RESET}{_DIM} {sep} site-doctor{_RESET}"
+        # each line gets its own random neon color for a vibrant look
+        lines = art.split("\n")
+        art = "\n".join(
+            f"\033[1;38;5;{rng.choice(_NEON)}m{ln}{_RESET}" for ln in lines)
+        tag = (f"  \033[1;38;5;{rng.choice(_NEON)}mPGLU{_RESET}"
+               f"{_DIM} {sep} site-doctor{_RESET}")
     else:
         tag = f"  PGLU {sep} site-doctor"
     return f"{art}\n{tag}\n"
