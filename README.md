@@ -1,5 +1,15 @@
 <div align="center">
 
+```text
+██████╗  ██████╗ ██╗     ██╗   ██╗
+██╔══██╗██╔════╝ ██║     ██║   ██║
+██████╔╝██║  ███╗██║     ██║   ██║
+██╔═══╝ ██║   ██║██║     ██║   ██║
+██║     ╚██████╔╝███████╗╚██████╔╝
+╚═╝      ╚═════╝ ╚══════╝ ╚═════╝
+PGLU · site-doctor
+```
+
 # 🩺 site-doctor
 
 ### Crawl any website and audit **SEO · Accessibility · Performance · Broken links** — from your terminal.
