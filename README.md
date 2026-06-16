@@ -38,6 +38,9 @@ output JSON for dashboards, or gate your CI/CD on a minimum health score.
   ✗ 404  https://example.com/old-page
 ```
 
+> 📖 New here? Read the **[full User Manual (USAGE.md)](USAGE.md)** — install, first
+> audit, every option, and troubleshooting (including the "command not recognized" fix).
+
 ## ✨ What it checks
 
 | Category | Examples |
