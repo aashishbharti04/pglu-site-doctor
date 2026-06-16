@@ -14,10 +14,11 @@ SEVERITIES = ("error", "warn", "info")
 
 @dataclass
 class Finding:
-    category: str           # "seo" | "a11y" | "performance"
+    category: str           # "seo" | "a11y" | "performance" | "security"
     severity: str           # "error" | "warn" | "info"
     code: str               # short machine code
     message: str            # human message
+    wcag: str = ""          # WCAG success criterion for a11y findings, e.g. "1.1.1"
 
 
 # ---------------------------------------------------------------------------
@@ -51,8 +52,20 @@ def seo_checks(p: PageData) -> list[Finding]:
     if not p.canonical:
         add("warn", "canonical-missing", "No canonical link; risks duplicate-content issues.")
 
-    if not any(k.startswith("og:") for k in p.meta):
+    has_og = any(k.startswith("og:") for k in p.meta)
+    if not has_og:
         add("warn", "og-missing", "No Open Graph tags; poor social sharing previews.")
+    elif not p.meta.get("og:image"):
+        add("warn", "og-image-missing", "Open Graph present but missing og:image.")
+
+    if not any(k.startswith("twitter:") for k in p.meta):
+        add("info", "twitter-card-missing", "No Twitter Card tags for rich X/Twitter previews.")
+
+    if not p.has_charset:
+        add("warn", "charset-missing", "No <meta charset> declared.")
+
+    if not p.has_favicon:
+        add("info", "favicon-missing", "No favicon (<link rel=icon>) declared.")
 
     if not p.meta.get("viewport"):
         add("warn", "viewport-missing", "No viewport meta; not mobile-friendly.")
@@ -77,41 +90,43 @@ _BAD_LINK_TEXT = {"click here", "here", "read more", "more", "link", "this"}
 
 def a11y_checks(p: PageData) -> list[Finding]:
     f: list[Finding] = []
-    add = lambda s, c, m: f.append(Finding("a11y", s, c, m))
+    add = lambda s, c, m, w="": f.append(Finding("a11y", s, c, m, w))
 
     if not p.lang:
-        add("error", "html-lang-missing", "No lang attribute on <html>.")
+        add("error", "html-lang-missing", "No lang attribute on <html>.", "3.1.1")
 
     missing_alt = [im for im in p.images if im.alt is None]
     if missing_alt:
         add("error", "img-alt-missing",
-            f"{len(missing_alt)}/{len(p.images)} images missing an alt attribute.")
+            f"{len(missing_alt)}/{len(p.images)} images missing an alt attribute.", "1.1.1")
     empty_alt = [im for im in p.images if im.alt == "" ]
     if len(empty_alt) > 0 and len(empty_alt) == len(p.images) and p.images:
-        add("warn", "img-alt-empty", "All images have empty alt text.")
+        add("warn", "img-alt-empty", "All images have empty alt text.", "1.1.1")
 
     if not (p.title or "").strip():
-        add("error", "doc-title-missing", "No document <title> (screen-reader landmark).")
+        add("error", "doc-title-missing",
+            "No document <title> (screen-reader landmark).", "2.4.2")
 
     bad = [l for l in p.links if l.text.strip().lower() in _BAD_LINK_TEXT]
     if bad:
         add("warn", "link-text-vague",
-            f"{len(bad)} links use vague text like 'click here' / 'read more'.")
+            f"{len(bad)} links use vague text like 'click here' / 'read more'.", "2.4.4")
 
     empty_links = [l for l in p.links if not l.text.strip()]
     if empty_links:
-        add("warn", "link-text-empty", f"{len(empty_links)} links have no text.")
+        add("warn", "link-text-empty", f"{len(empty_links)} links have no text.", "2.4.4")
 
     if p.inputs_without_label > 0:
         add("error", "input-no-label",
-            f"{p.inputs_without_label}/{p.total_inputs} form fields lack an accessible label.")
+            f"{p.inputs_without_label}/{p.total_inputs} form fields lack an accessible label.",
+            "1.3.1")
 
     # heading hierarchy: levels shouldn't jump by more than 1
     levels = [lvl for lvl, _ in p.headings]
     for prev, cur in zip(levels, levels[1:]):
         if cur - prev > 1:
             add("warn", "heading-skip",
-                f"Heading level jumps from h{prev} to h{cur}.")
+                f"Heading level jumps from h{prev} to h{cur}.", "1.3.1")
             break
 
     return f
@@ -142,6 +157,20 @@ def performance_checks(p: PageData) -> list[Finding]:
 
     if len(p.images) > 30:
         add("info", "many-images", f"{len(p.images)} images; ensure lazy-loading & compression.")
+
+    if len(p.resource_urls) > 50:
+        add("warn", "many-requests",
+            f"{len(p.resource_urls)} sub-resource requests; bundle/defer to reduce.")
+
+    # response-header signals (only when we actually fetched the page)
+    h = p.headers
+    if h:
+        if "content-encoding" not in h:
+            add("warn", "no-compression",
+                "No Content-Encoding (gzip/br); enable text compression.")
+        if "cache-control" not in h:
+            add("info", "no-cache-headers",
+                "No Cache-Control header; static assets won't be cached well.")
 
     # real measured load time (from the crawler), when available
     if p.load_ms > 4000:

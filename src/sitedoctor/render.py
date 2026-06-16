@@ -79,10 +79,13 @@ def render(report: SiteReport, color=None) -> str:
     # aggregate findings across pages by severity + code
     counter: Counter = Counter()
     examples: dict = {}
+    wcag_map: dict = {}
     for p in report.pages:
         for f in p.findings:
             counter[(f.category, f.severity, f.code)] += 1
             examples.setdefault((f.category, f.severity, f.code), f.message)
+            if getattr(f, "wcag", ""):
+                wcag_map[(f.category, f.severity, f.code)] = f.wcag
     for f in report.site_findings:  # cross-page (site-wide) issues
         counter[(f.category, f.severity, f.code)] += 1
         examples[(f.category, f.severity, f.code)] = f.message
@@ -95,7 +98,9 @@ def render(report: SiteReport, color=None) -> str:
                 counter.items(), key=lambda kv: (sev_rank[kv[0][1]], -kv[1]))[:12]:
             tag = _c(f"[{sev}]", sev_color[sev], on)
             pages_txt = f"{n} page{'s' if n > 1 else ''}"
-            out.append(f"  {tag} {_c(cat, _CYAN, on)}: {examples[(cat, sev, code)]} "
+            wcag = wcag_map.get((cat, sev, code), "")
+            wcag_txt = _c(f" [WCAG {wcag}]", _GREY, on) if wcag else ""
+            out.append(f"  {tag} {_c(cat, _CYAN, on)}: {examples[(cat, sev, code)]}{wcag_txt} "
                        + _c(f"({pages_txt})", _GREY, on))
     else:
         out.append(_c("  No SEO/a11y/performance issues found. " + check, _GREEN, on))

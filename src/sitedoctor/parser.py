@@ -35,6 +35,8 @@ class PageData:
     inline_script_bytes: int = 0
     inline_style_blocks: int = 0
     has_jsonld: bool = False
+    has_favicon: bool = False
+    has_charset: bool = False
     word_count: int = 0
     html_bytes: int = 0
     resource_urls: list[str] = field(default_factory=list)  # sub-resources (js/css/img)
@@ -80,6 +82,11 @@ class _Parser(HTMLParser):
         if tag == "html" and "lang" in a:
             self.data.lang = a["lang"].strip()
         elif tag == "meta":
+            if "charset" in a:
+                self.data.has_charset = True
+            if (a.get("http-equiv", "").lower() == "content-type"
+                    and "charset" in a.get("content", "").lower()):
+                self.data.has_charset = True
             key = a.get("name") or a.get("property")
             if key and "content" in a:
                 self.data.meta[key.lower()] = a["content"]
@@ -87,6 +94,8 @@ class _Parser(HTMLParser):
             rel = a.get("rel", "").lower()
             if "canonical" in rel and a.get("href"):
                 self.data.canonical = urljoin(self.base_url, a["href"])
+            if "icon" in rel:  # icon, shortcut icon, apple-touch-icon
+                self.data.has_favicon = True
             if "stylesheet" in rel:
                 self.data.stylesheet_count += 1
                 if a.get("href"):

@@ -55,9 +55,9 @@ output JSON for dashboards, or gate your CI/CD on a minimum health score.
 
 | Category | Examples |
 |----------|----------|
-| 🔍 **SEO** | title length, meta description, single H1, canonical, Open Graph, viewport, JSON-LD, thin content |
-| ♿ **Accessibility** | `<html lang>`, image alt text, vague/empty link text, form-field labels, heading hierarchy |
-| ⚡ **Performance** | measured page **load time**, HTML size, script/stylesheet count, large inline JS, image count |
+| 🔍 **SEO** | title, meta description, single H1, canonical, Open Graph + `og:image`, Twitter Card, `<meta charset>`, favicon, viewport, JSON-LD, thin content |
+| ♿ **Accessibility** | `<html lang>`, alt text, vague/empty link text, form labels, heading order — each tagged with its **WCAG** success criterion |
+| ⚡ **Performance** | measured **load time**, HTML size, script/stylesheet count, large inline JS, **request count**, **gzip/brotli** & **Cache-Control** headers |
 | 🔒 **Security** | HTTPS, security headers (HSTS, CSP, X-Content-Type-Options, X-Frame-Options, Referrer-Policy), mixed content |
 | 🔗 **Broken links** | parallel HTTP checks of internal **and** external links, with status codes |
 | 🗂️ **Site-wide** | duplicate `<title>` and duplicate meta descriptions across pages |
